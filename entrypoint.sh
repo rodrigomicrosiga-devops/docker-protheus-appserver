@@ -363,3 +363,5 @@ else
     cd /totvs/protheus/bin/appserver
     exec ./appsrvlinux -console
 fi
+
+# Force rebuild CI: $(date +%s)
