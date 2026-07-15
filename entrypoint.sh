@@ -37,21 +37,29 @@ echo "✅ Conectividade com DbAccess e License Server established!"
 # ==============================================================================
 echo "🔍 Verificando integridade do repositório de objetos (APO)..."
 if [ -d "/totvs/protheus/apo" ]; then
-    # Procura qualquer RPO que contenha "tttm120" no nome, ignorando caixa alta/baixa, exceto o já renomeado correto
+    
+    # 🧹 Limpeza de segurança: Se existir um tttm120.rpo com tamanho zero (criado incorretamente pelo sistema), deleta.
+    if [ -f "/totvs/protheus/apo/tttm120.rpo" ] && [ ! -s "/totvs/protheus/apo/tttm120.rpo" ]; then
+        echo "🧹 [RPO Align] Detectado tttm120.rpo inválido de tamanho zero. Removendo..."
+        rm -f /totvs/protheus/apo/tttm120.rpo
+    fi
+
+    # Procura qualquer RPO que contenha "tttm120" no nome, ignorando caixa alta/baixa, exceto o destino correto
     RPO_MATCH=$(find /totvs/protheus/apo -maxdepth 1 -iname "*tttm120*.rpo" ! -name "tttm120.rpo" | head -n 1)
     
     if [ -n "$RPO_MATCH" ] && [ -f "$RPO_MATCH" ]; then
         echo "🔄 [RPO Align] Detectado RPO padrão com nomenclatura do portal: (${RPO_MATCH##*/})"
-        echo "🚚 Renomeando para tttm120.rpo para compatibilidade nativa..."
-        # Remove RPO antigo ou quebrado antes para evitar duplicidade ou travamento por permissão
+        echo "🚚 Forçando renomeação para tttm120.rpo para compatibilidade nativa..."
+        # Remove fisicamente para garantir que o 'mv' não trave se o arquivo destino existir
         rm -f /totvs/protheus/apo/tttm120.rpo
-        mv "$RPO_MATCH" /totvs/protheus/apo/tttm120.rpo
+        mv -f "$RPO_MATCH" /totvs/protheus/apo/tttm120.rpo
         echo "✅ RPO padrão renomeado e alinhado com sucesso!"
     else
-        if [ -f "/totvs/protheus/apo/tttm120.rpo" ]; then
-            echo "⏭️  RPO padrão tttm120.rpo já está no formato correto. Pulando alinhamento."
+        # Valida se o arquivo que restou é válido (existe e tem tamanho maior que zero)
+        if [ -f "/totvs/protheus/apo/tttm120.rpo" ] && [ -s "/totvs/protheus/apo/tttm120.rpo" ]; then
+            echo "⏭️  RPO padrão tttm120.rpo já está no formato correto e íntegro. Pulando alinhamento."
         else
-            echo "⚠️  Aviso Crítico: RPO padrão tttm120.rpo não foi localizado em /totvs/protheus/apo/!"
+            echo "⚠️  Aviso Crítico: Nenhum RPO padrão válido de tamanho correto foi localizado em /totvs/protheus/apo/!"
         fi
     fi
 fi
