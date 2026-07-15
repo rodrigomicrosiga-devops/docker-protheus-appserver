@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /tmp/build
 
-# 🌟 SUPORTE DINÂMICO: Copia apenas o instalador do AppServer vindo da TOTVS
-COPY ./*appserver*.[tT][aA][rR].[gG][zZ] ./appserver.tar.gz
+# 🌟 SUPORTE DINÂMICO: Copia apenas o instalador do AppServer com tolerância de caixa no nome
+COPY ./*[aA][pP][pP][sS][eE][rR][vV][eE][rR]*.[tT][aA][rR].[gG][zZ] ./appserver.tar.gz
 
 RUN mkdir -p appserver && \
     tar -xzf appserver.tar.gz -C appserver/

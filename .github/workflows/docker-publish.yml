@@ -18,7 +18,7 @@ jobs:
       - name: Checkout do Código
         uses: actions/checkout@v4
 
-      # 🚀 Resgata o pacote de forma dinâmica e tolera ausências temporárias sem quebrar o build
+      # 🚀 Resgata o pacote de forma dinâmica e tolera variações de caixa alta/baixa no nome
       - name: Resgatar Instaladores Proprietários no Workspace
         run: |
           echo "🔍 Procurando arquivos do AppServer nos caminhos conhecidos..."
@@ -26,11 +26,11 @@ jobs:
           # Ativa a opção nullglob para que os asteriscos não expandidos não quebrem o shell
           shopt -s nullglob
           
-          # Array com as tentativas de busca ordenadas por prioridade
+          # Array com as tentativas de busca ordenadas por prioridade (Curinga case-insensitive para APPSERVER)
           CANDIDATOS=(
-            ../../*appserver*.[tT][aA][rR].[gG][zZ]
-            "${{ github.workspace }}/../"*appserver*.[tT][aA][rR].[gG][zZ]
-            /media/rodrigo/dados/docker-protheus-appserver/*appserver*.[tT][aA][rR].[gG][zZ]
+            ../../*[aA][pP][pP][sS][eE][rR][vV][eE][rR]*.[tT][aA][rR].[gG][zZ]
+            "${{ github.workspace }}/../"*[aA][pP][pP][sS][eE][rR][vV][eE][rR]*.[tT][aA][rR].[gG][zZ]
+            /media/rodrigo/dados/docker-protheus-appserver/*[aA][pP][pP][sS][eE][rR][vV][eE][rR]*.[tT][aA][rR].[gG][zZ]
           )
           
           COPIADO=false
