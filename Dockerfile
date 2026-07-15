@@ -11,13 +11,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /tmp/build
 
-# 🌟 SUPORTE DINÂMICO: Aceita qualquer nome de ficheiro vindo da TOTVS
+# 🌟 SUPORTE DINÂMICO: Copia apenas o instalador do AppServer vindo da TOTVS
 COPY ./*appserver*.[tT][aA][rR].[gG][zZ] ./appserver.tar.gz
-COPY ./*webapp*.[tT][aA][rR].[gG][zZ] ./webapp.tar.gz
 
 RUN mkdir -p appserver && \
-    tar -xzf appserver.tar.gz -C appserver/ && \
-    tar -xzf webapp.tar.gz -C appserver/
+    tar -xzf appserver.tar.gz -C appserver/
+    # ❌ Linha da webapp removida daqui!
 
 # ⚡ A MÁGICA DO STRIP: Remove símbolos de debug recursivamente de todas as libs e binários
 RUN find appserver/ -type f -name "*.so*" -exec strip --strip-unneeded {} + 2>/dev/null || true
@@ -31,13 +30,12 @@ LABEL maintainer="Rodrigo dos Santos Brandão <rodrigomicrosiga>"
 LABEL version="24.3.1.5" 
 LABEL description="TOTVS AppServer 24.3.1.5 - Ultra Light"
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV LANG=pt_BR.UTF-8
-ENV LANGUAGE=pt_BR:pt
-ENV LC_ALL=pt_BR.UTF-8
-ENV PATH="/totvs/protheus/bin/appserver:${PATH}"
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=pt_BR.UTF-8 \
+    LANGUAGE=pt_BR:pt \
+    LC_ALL=pt_BR.UTF-8 \
+    PATH="/totvs/protheus/bin/appserver:${PATH}"
 
-# Instalação das dependências mínimas de execução no Debian Bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libc6 \
     libtinfo5 \
@@ -57,10 +55,9 @@ RUN mkdir -p /totvs/protheus/bin/appserver \
              /totvs/protheus/log \
              /totvs/protheus/data
 
-# Copia a pasta compilada e higienizada pelo builder
+# Copia apenas os binários limpos do AppServer do builder
 COPY --from=builder /tmp/build/appserver /totvs/protheus/bin/appserver/
 
-# Copia os scripts da raiz do contexto local
 COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY ./code_compiler.sh /usr/local/bin/code_compiler.sh
 COPY ./patch_deployer.sh /usr/local/bin/patch_deployer.sh
