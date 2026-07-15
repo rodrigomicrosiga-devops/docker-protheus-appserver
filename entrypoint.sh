@@ -180,7 +180,7 @@ fi
 cat <<EOF >> appserver.ini
 
 [WebApp/webapp]
-MPP=
+MPP=1
 EOF
 
 # Append dos blocos especialistas dedicados (REST / TELNET / UPDDISTR)
