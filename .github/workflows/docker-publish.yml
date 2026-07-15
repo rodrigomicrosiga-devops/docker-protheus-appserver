@@ -18,11 +18,11 @@ jobs:
       - name: Checkout do Código
         uses: actions/checkout@v4
 
-      # Resgata ambos os arquivos binários de forma relativa no host local do Runner
+      # 🚀 SOLUÇÃO DEFINITIVA: Resgata os pacotes dinamicamente usando curingas de extensão
       - name: Resgatar Instaladores Proprietários no Workspace
         run: |
-          cp ../../appserver.tar.gz . 2>/dev/null || cp "${{ github.workspace }}/../appserver.tar.gz" . 2>/dev/null || cp /media/rodrigo/dados/docker-protheus-appserver/appserver.tar.gz .
-          cp ../../webapp.tar.gz . 2>/dev/null || cp "${{ github.workspace }}/../webapp.tar.gz" . 2>/dev/null || cp /media/rodrigo/dados/docker-protheus-appserver/webapp.tar.gz .
+          cp ../../*appserver*.[tT][aA][rR].[gG][zZ] . 2>/dev/null || cp "${{ github.workspace }}/../"*appserver*.[tT][aA][rR].[gG][zZ] . 2>/dev/null || cp /media/rodrigo/dados/docker-protheus-appserver/*appserver*.[tT][aA][rR].[gG][zZ] .
+          cp ../../*webapp*.[tT][aA][rR].[gG][zZ] . 2>/dev/null || cp "${{ github.workspace }}/../"*webapp*.[tT][aA][rR].[gG][zZ] . 2>/dev/null || cp /media/rodrigo/dados/docker-protheus-appserver/*webapp*.[tT][aA][rR].[gG][zZ] .
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -39,4 +39,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: rodrigomicrosiga/appserver-dev:24.3.1.5  # Tag imutável baseada na label original
+          tags: rodrigomicrosiga/appserver-dev:24.3.1.5

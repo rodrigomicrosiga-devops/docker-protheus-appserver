@@ -1,27 +1,35 @@
 # ==============================================================================
-# ESTÁGIO 1: Builder (Descarte de instaladores e lixo estrutural)
+# ESTÁGIO 1: Builder (Extração e Limpeza por Strip)
 # ==============================================================================
-FROM ubuntu:22.04 AS builder
+FROM debian:bookworm-slim AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends tar && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tar \
+    binutils \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /tmp/build
 
-# Modificado para buscar os arquivos soltos na raiz trazidos pelo Runner
-COPY ./appserver.tar.gz .
-COPY ./webapp.tar.gz .
+# 🌟 SUPORTE DINÂMICO: Aceita qualquer nome de ficheiro vindo da TOTVS
+COPY ./*appserver*.[tT][aA][rR].[gG][zZ] ./appserver.tar.gz
+COPY ./*webapp*.[tT][aA][rR].[gG][zZ] ./webapp.tar.gz
 
 RUN mkdir -p appserver && \
     tar -xzf appserver.tar.gz -C appserver/ && \
     tar -xzf webapp.tar.gz -C appserver/
 
+# ⚡ A MÁGICA DO STRIP: Remove símbolos de debug recursivamente de todas as libs e binários
+RUN find appserver/ -type f -name "*.so*" -exec strip --strip-unneeded {} + 2>/dev/null || true
+RUN strip --strip-unneeded appserver/appsrvlinux 2>/dev/null || true
+
 # ==============================================================================
-# ESTÁGIO 2: Runner (Imagem Enxuta de Produção)
+# ESTÁGIO 2: Runner (Imagem Ultra-Leve de Produção)
 # ==============================================================================
-FROM ubuntu:22.04 AS runner
+FROM debian:bookworm-slim AS runner
 LABEL maintainer="Rodrigo dos Santos Brandão <rodrigomicrosiga>"
 LABEL version="24.3.1.5" 
-LABEL description="TOTVS AppServer 24.3.1.5"
+LABEL description="TOTVS AppServer 24.3.1.5 - Ultra Light"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=pt_BR.UTF-8
@@ -29,6 +37,7 @@ ENV LANGUAGE=pt_BR:pt
 ENV LC_ALL=pt_BR.UTF-8
 ENV PATH="/totvs/protheus/bin/appserver:${PATH}"
 
+# Instalação das dependências mínimas de execução no Debian Bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libc6 \
     libtinfo5 \
@@ -38,6 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     locales \
     dmidecode \
     && echo "pt_BR.UTF-8 UTF-8" > /etc/locale.gen && locale-gen \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /totvs/protheus/bin/appserver \
@@ -47,10 +57,10 @@ RUN mkdir -p /totvs/protheus/bin/appserver \
              /totvs/protheus/log \
              /totvs/protheus/data
 
-# Copia os binários mesclados do builder
+# Copia a pasta compilada e higienizada pelo builder
 COPY --from=builder /tmp/build/appserver /totvs/protheus/bin/appserver/
 
-# Modificado para copiar os scripts da raiz do contexto local
+# Copia os scripts da raiz do contexto local
 COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY ./code_compiler.sh /usr/local/bin/code_compiler.sh
 COPY ./patch_deployer.sh /usr/local/bin/patch_deployer.sh
