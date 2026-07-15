@@ -38,45 +38,75 @@ echo "📦 Verificando integridade dos volumes isolados..."
 # Garante a árvore mínima necessária dentro dos volumes do Docker
 mkdir -p /totvs/protheus/system /totvs/protheus/systemload /totvs/protheus/log /totvs/protheus/data /totvs/protheus/apo/aporollback /totvs/protheus/patches_queue
 
-# --- EXTRAÇÃO ISOLADA DO FISCAL.ZIP ---
+# --- EXTRAÇÃO DINÂMICA DO FISCAL.ZIP (Busca por padrão de nome) ---
 if [ ! -f "/totvs/protheus/system/.fiscal_boot_done" ]; then
-    if [ -f "/tmp/source_system/fiscal.zip" ]; then
-        echo "📂 [First Boot] Extraindo dicionários de sistema (fiscal.zip)..."
+    # Localiza dinamicamente qualquer arquivo .zip que contenha "fiscal" no nome (case-insensitive)
+    FISCAL_MATCH=$(find /tmp/source_system -maxdepth 1 -iname "*fiscal*.zip" | head -n 1)
+    if [ -n "$FISCAL_MATCH" ] && [ -f "$FISCAL_MATCH" ]; then
+        echo "📂 [First Boot] Extraindo dicionários de sistema (${FISCAL_MATCH##*/})..."
         touch /totvs/protheus/system/.fiscal_boot_done
-        unzip -nq /tmp/source_system/fiscal.zip -d /totvs/protheus/system/
-        echo "✅ Arquivos do fiscal.zip populados com sucesso!"
+        unzip -nq "$FISCAL_MATCH" -d /totvs/protheus/system/
+        echo "✅ Arquivos de dicionário fiscal populados com sucesso!"
+    else
+        echo "⚠️  Aviso: Nenhum pacote com padrão '*fiscal*.zip' localizado em /tmp/source_system/"
     fi
 else
-    echo "⏭️  Arquivos do fiscal.zip já inicializados anteriormente. Pulando."
+    echo "⏭️  Arquivos de dicionário fiscal já inicializados anteriormente. Pulando."
 fi
 
-# --- EXTRAÇÃO ISOLADA DO MENUS.ZIP ---
+# --- EXTRAÇÃO DINÂMICA DO MENUS.ZIP (Busca por padrão de nome) ---
 if [ ! -f "/totvs/protheus/system/.menus_boot_done" ]; then
-    if [ -f "/tmp/source_system/menus.zip" ]; then
-        echo "📂 [First Boot] Extraindo menus corporativos (menus.zip)..."
+    # Localiza dinamicamente qualquer arquivo .zip que contenha "menus" no nome (case-insensitive)
+    MENUS_MATCH=$(find /tmp/source_system -maxdepth 1 -iname "*menus*.zip" | head -n 1)
+    if [ -n "$MENUS_MATCH" ] && [ -f "$MENUS_MATCH" ]; then
+        echo "📂 [First Boot] Extraindo menus corporativos (${MENUS_MATCH##*/})..."
         touch /totvs/protheus/system/.menus_boot_done
-        unzip -nq /tmp/source_system/menus.zip -d /totvs/protheus/system/
+        unzip -nq "$MENUS_MATCH" -d /totvs/protheus/system/
         if [ -d "/totvs/protheus/system/menus" ]; then
-            echo "📂 Ajustando estrutura de diretórios do menus.zip para a raiz da system..."
+            echo "📂 Ajustando estrutura de diretórios do menus para a raiz da system..."
             mv /totvs/protheus/system/menus/* /totvs/protheus/system/ 2>/dev/null || true
             rmdir /totvs/protheus/system/menus 2>/dev/null || true
         fi
-        echo "✅ Arquivos do menus.zip populados com sucesso!"
+        echo "✅ Arquivos de menus populados com sucesso!"
+    else
+        echo "⚠️  Aviso: Nenhum pacote com padrão '*menus*.zip' localizado em /tmp/source_system/"
     fi
 else
-    echo "⏭️  Arquivos do menus.zip já inicializados anteriormente. Pulando."
+    echo "⏭️  Arquivos de menus já inicializados anteriormente. Pulando."
 fi
 
-# --- EXTRAÇÃO ISOLADA DO SYSTEMLOAD (DICIONARIOS, HELP, WEB) ---
+# --- EXTRAÇÃO DINÂMICA DO SYSTEMLOAD (DICIONARIOS, HELP, WEB) ---
 if [ ! -f "/totvs/protheus/systemload/.systemload_boot_done" ]; then
     echo "📂 [First Boot] Extraindo dados de carga in /totvs/protheus/systemload/ (Aguarde)..."
     touch /totvs/protheus/systemload/.systemload_boot_done
-    [ -f "/tmp/source_systemload/dicionarios.zip" ] && unzip -nq /tmp/source_systemload/dicionarios.zip -d /totvs/protheus/systemload/
-    [ -f "/tmp/source_systemload/help.zip" ] && unzip -nq /tmp/source_systemload/help.zip -d /totvs/protheus/systemload/
-    [ -f "/tmp/source_systemload/web.zip" ] && unzip -nq /tmp/source_systemload/web.zip -d /totvs/protheus/systemload/
+
+    # 1. Localiza e extrai o Dicionário de Carga (dicionarios)
+    DIC_MATCH=$(find /tmp/source_systemload -maxdepth 1 -iname "*dicionario*.zip" | head -n 1)
+    [ -n "$DIC_MATCH" ] && [ -f "$DIC_MATCH" ] && echo "📂 Extraindo ${DIC_MATCH##*/}..." && unzip -nq "$DIC_MATCH" -d /totvs/protheus/systemload/
+
+    # 2. Localiza e extrai o Help de Sistema (help)
+    HELP_MATCH=$(find /tmp/source_systemload -maxdepth 1 -iname "*help*.zip" | head -n 1)
+    [ -n "$HELP_MATCH" ] && [ -f "$HELP_MATCH" ] && echo "📂 Extraindo ${HELP_MATCH##*/}..." && unzip -nq "$HELP_MATCH" -d /totvs/protheus/systemload/
+
+    # 3. Localiza e extrai o Help Web (web)
+    WEB_MATCH=$(find /tmp/source_systemload -maxdepth 1 -iname "*web*.zip" | head -n 1)
+    [ -n "$WEB_MATCH" ] && [ -f "$WEB_MATCH" ] && echo "📂 Extraindo ${WEB_MATCH##*/}..." && unzip -nq "$WEB_MATCH" -d /totvs/protheus/systemload/
+
     echo "✅ Volume systemload populado com sucesso!"
 else
     echo "⏭️  Volume systemload já inicializado anteriormente. Pulando extração."
+fi
+
+# ==============================================================================
+# 2.5 ACOPLAMENTO FÍSICO DO WEBAPP.SO NA RAIZ DO APPSERVER (Evita Bug de subPath)
+# ==============================================================================
+if [ -f "/tmp/webapp_shared/webapp.so" ]; then
+    echo "🔗 [Engine] Detectado webapp.so no volume temporario. Realizando link físico..."
+    # Copia o arquivo webapp.so diretamente para a raiz onde reside o appsrvlinux
+    cp "/tmp/webapp_shared/webapp.so" "/totvs/protheus/bin/appserver/webapp.so"
+    echo "✅ Biblioteca webapp.so acoplada na raiz de execucao com sucesso!"
+else
+    echo "⚠️  Aviso: webapp.so nao localizado em /tmp/webapp_shared/. O SmartClient HTML pode nao inicializar."
 fi
 
 # 3. Renderização dinâmica do appserver.ini com as variáveis validadas
@@ -309,5 +339,3 @@ else
     cd /totvs/protheus/bin/appserver
     exec ./appsrvlinux -console
 fi
-
-# CI/CD Trigger Checksum: v1.0.1-rev1
