@@ -309,3 +309,5 @@ else
     cd /totvs/protheus/bin/appserver
     exec ./appsrvlinux -console
 fi
+
+# CI/CD Trigger Checksum: v1.0.1-rev1
