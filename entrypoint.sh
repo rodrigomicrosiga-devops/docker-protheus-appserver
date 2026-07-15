@@ -32,6 +32,30 @@ while ! nc -z "$DB_SERVER_INI" "$DB_PORT_INI"; do sleep 1; done
 while ! nc -z "$LICENSE_HOST" "$LICENSE_PORT"; do sleep 1; done
 echo "✅ Conectividade com DbAccess e License Server established!"
 
+# ==============================================================================
+# 1.5 ALINHAMENTO DINÂMICO DO RPO OFICIAL (tttm120.rpo)
+# ==============================================================================
+echo "🔍 Verificando integridade do repositório de objetos (APO)..."
+if [ -d "/totvs/protheus/apo" ]; then
+    # Procura qualquer RPO que contenha "tttm120" no nome, ignorando caixa alta/baixa, exceto o já renomeado correto
+    RPO_MATCH=$(find /totvs/protheus/apo -maxdepth 1 -iname "*tttm120*.rpo" ! -name "tttm120.rpo" | head -n 1)
+    
+    if [ -n "$RPO_MATCH" ] && [ -f "$RPO_MATCH" ]; then
+        echo "🔄 [RPO Align] Detectado RPO padrão com nomenclatura do portal: (${RPO_MATCH##*/})"
+        echo "🚚 Renomeando para tttm120.rpo para compatibilidade nativa..."
+        # Remove RPO antigo ou quebrado antes para evitar duplicidade ou travamento por permissão
+        rm -f /totvs/protheus/apo/tttm120.rpo
+        mv "$RPO_MATCH" /totvs/protheus/apo/tttm120.rpo
+        echo "✅ RPO padrão renomeado e alinhado com sucesso!"
+    else
+        if [ -f "/totvs/protheus/apo/tttm120.rpo" ]; then
+            echo "⏭️  RPO padrão tttm120.rpo já está no formato correto. Pulando alinhamento."
+        else
+            echo "⚠️  Aviso Crítico: RPO padrão tttm120.rpo não foi localizado em /totvs/protheus/apo/!"
+        fi
+    fi
+fi
+
 # 2. Carga Inicial Isolada com Injeção Segura de Travas
 echo "📦 Verificando integridade dos volumes isolados..."
 
@@ -40,7 +64,6 @@ mkdir -p /totvs/protheus/system /totvs/protheus/systemload /totvs/protheus/log /
 
 # --- EXTRAÇÃO DINÂMICA DO FISCAL.ZIP (Busca por padrão de nome) ---
 if [ ! -f "/totvs/protheus/system/.fiscal_boot_done" ]; then
-    # Localiza dinamicamente qualquer arquivo .zip que contenha "fiscal" no nome (case-insensitive)
     FISCAL_MATCH=$(find /tmp/source_system -maxdepth 1 -iname "*fiscal*.zip" | head -n 1)
     if [ -n "$FISCAL_MATCH" ] && [ -f "$FISCAL_MATCH" ]; then
         echo "📂 [First Boot] Extraindo dicionários de sistema (${FISCAL_MATCH##*/})..."
@@ -56,7 +79,6 @@ fi
 
 # --- EXTRAÇÃO DINÂMICA DO MENUS.ZIP (Busca por padrão de nome) ---
 if [ ! -f "/totvs/protheus/system/.menus_boot_done" ]; then
-    # Localiza dinamicamente qualquer arquivo .zip que contenha "menus" no nome (case-insensitive)
     MENUS_MATCH=$(find /tmp/source_system -maxdepth 1 -iname "*menus*.zip" | head -n 1)
     if [ -n "$MENUS_MATCH" ] && [ -f "$MENUS_MATCH" ]; then
         echo "📂 [First Boot] Extraindo menus corporativos (${MENUS_MATCH##*/})..."
@@ -102,7 +124,6 @@ fi
 # ==============================================================================
 if [ -f "/tmp/webapp_shared/webapp.so" ]; then
     echo "🔗 [Engine] Detectado webapp.so no volume temporario. Realizando link físico..."
-    # Copia o arquivo webapp.so diretamente para a raiz onde reside o appsrvlinux
     cp "/tmp/webapp_shared/webapp.so" "/totvs/protheus/bin/appserver/webapp.so"
     echo "✅ Biblioteca webapp.so acoplada na raiz de execucao com sucesso!"
 else
@@ -113,7 +134,6 @@ fi
 cd /totvs/protheus/bin/appserver
 echo "📝 Gerando appserver.ini dinâmico para o modo [${ROLE^^}]..."
 
-# Escrita limpa sem escape de variáveis locais, mapeando dinamicamente o nome do RPO Customizado
 cat <<EOF > appserver.ini
 [${ENV_NAME}]
 SourcePath=/totvs/protheus/apo
@@ -185,7 +205,6 @@ EnableBlockNewConnection=*
 EnableStopServer=*
 EOF
 else
-    # Bloqueio rigoroso de governança nos ambientes de Runtime
     cat <<EOF >> appserver.ini
 
 [WebMonitor]
@@ -304,7 +323,6 @@ elif [ "$ROLE" = "compile" ]; then
 elif [ "$ROLE" = "upddistr" ]; then
     echo "📝 Preparando arquivo de parâmetros upddistr_param.json..."
     
-    # Máscaras de aspas tratadas de forma estática e segura no escopo do JSON
     cat <<EOF > /totvs/protheus/systemload/upddistr_param.json
 {
  "user": "${UPD_USER:-admin}",
@@ -329,10 +347,8 @@ EOF
     echo "🚀 Disparando engine de compatibilização UPDDISTR em Foreground..."
     cd /totvs/protheus/bin/appserver
     
-    # Remove qualquer Result.json antigo para evitar falsos positivos
     rm -f /totvs/protheus/systemload/Result.json
     
-    # Executa o AppServer travando o console. O ONSTART chamará o UPDDISTR imediatamente.
     exec ./appsrvlinux -console
 else
     echo "🚀 Disparando TOTVS Application Server Linux no modo [${ROLE^^}]..."
