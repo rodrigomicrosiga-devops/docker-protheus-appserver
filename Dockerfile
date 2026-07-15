@@ -16,7 +16,6 @@ COPY ./*appserver*.[tT][aA][rR].[gG][zZ] ./appserver.tar.gz
 
 RUN mkdir -p appserver && \
     tar -xzf appserver.tar.gz -C appserver/
-    # ❌ Linha da webapp removida daqui!
 
 # ⚡ A MÁGICA DO STRIP: Remove símbolos de debug recursivamente de todas as libs e binários
 RUN find appserver/ -type f -name "*.so*" -exec strip --strip-unneeded {} + 2>/dev/null || true

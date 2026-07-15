@@ -18,10 +18,36 @@ jobs:
       - name: Checkout do Código
         uses: actions/checkout@v4
 
-      # 🚀 Resgata APENAS o pacote do AppServer no host físico de forma dinâmica
+      # 🚀 Resgata o pacote de forma dinâmica e tolera ausências temporárias sem quebrar o build
       - name: Resgatar Instaladores Proprietários no Workspace
         run: |
-          cp ../../*appserver*.[tT][aA][rR].[gG][zZ] . 2>/dev/null || cp "${{ github.workspace }}/../"*appserver*.[tT][aA][rR].[gG][zZ] . 2>/dev/null || cp /media/rodrigo/dados/docker-protheus-appserver/*appserver*.[tT][aA][rR].[gG][zZ] .
+          echo "🔍 Procurando arquivos do AppServer nos caminhos conhecidos..."
+          
+          # Ativa a opção nullglob para que os asteriscos não expandidos não quebrem o shell
+          shopt -s nullglob
+          
+          # Array com as tentativas de busca ordenadas por prioridade
+          CANDIDATOS=(
+            ../../*appserver*.[tT][aA][rR].[gG][zZ]
+            "${{ github.workspace }}/../"*appserver*.[tT][aA][rR].[gG][zZ]
+            /media/rodrigo/dados/docker-protheus-appserver/*appserver*.[tT][aA][rR].[gG][zZ]
+          )
+          
+          COPIADO=false
+          for ARQUIVO in "${CANDIDATOS[@]}"; do
+            if [ -f "$ARQUIVO" ]; then
+              echo "✅ Arquivo encontrado em: $ARQUIVO"
+              cp "$ARQUIVO" .
+              COPIADO=true
+              break
+            fi
+          done
+          
+          if [ "$COPIADO" = false ]; then
+            echo "❌ ERRO: O arquivo compactado do AppServer não foi localizado em nenhum dos diretórios mapeados!"
+            echo "Certifique-se de que o arquivo (.TAR.GZ) está em /media/rodrigo/dados/docker-protheus-appserver/ ou no nível acima do projeto."
+            exit 1
+          fi
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
