@@ -138,6 +138,15 @@ else
     echo "⚠️  Aviso: webapp.so nao localizado em /tmp/webapp_shared/. O SmartClient HTML pode nao inicializar."
 fi
 
+# 📂 PROVISIONAMENTO DO TOTVS PRINTER (Sidecar)
+if [ -f "/tmp/printer_shared/printer" ]; then
+    echo "🖨️ [DevOps] Copiando executável TOTVS Printer para a pasta binária..."
+    cp /tmp/printer_shared/printer /totvs/protheus/bin/appserver/
+    chmod +x /totvs/protheus/bin/appserver/printer
+else
+    echo "⚠️  [DevOps] Aviso: Executável printer não localizado em /tmp/printer_shared/"
+fi
+
 # 3. Renderização dinâmica do appserver.ini com as variáveis validadas
 cd /totvs/protheus/bin/appserver
 echo "📝 Gerando appserver.ini dinâmico para o modo [${ROLE^^}]..."
