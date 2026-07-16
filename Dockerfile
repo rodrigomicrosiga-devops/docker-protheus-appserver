@@ -43,6 +43,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     locales \
     dmidecode \
+    # 🖨️ Dependências nativas necessárias para o TOTVS Printer rodar perfeitamente
+    libdrm2 \
+    libxcb-glx0 \
+    libx11-xcb1 \
+    libxkbcommon-x11-0 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-keysyms1 \
+    libxcb-render-util0 \
+    libsm6 \
+    libcups2 \
+    libglx0 \
+    libopengl0 \
+    libegl1 \
+    libfreetype6 \
+    libfontconfig1 \
     && echo "pt_BR.UTF-8 UTF-8" > /etc/locale.gen && locale-gen \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
