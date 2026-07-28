@@ -78,12 +78,17 @@ echo "📦 Verificando integridade dos volumes isolados..."
 mkdir -p /totvs/protheus/system /totvs/protheus/systemload /totvs/protheus/log /totvs/protheus/data /totvs/protheus/apo/aporollback /totvs/protheus/patches_queue
 
 # --- EXTRAÇÃO DINÂMICA DO FISCAL.ZIP (Busca por padrão de nome) ---
+# unzip retorna 1 para avisos não-fatais (ex.: notação de separador de
+# caminho em \ nos pacotes da TOTVS, confirmado real no fiscal.zip) --
+# extração continua correta mesmo assim. Só um código >= 2 é erro real.
+# O marcador só é gravado APÓS o sucesso -- gravá-lo antes (como era) faz
+# uma falha real de extração ser silenciosamente ignorada para sempre.
 if [ ! -f "/totvs/protheus/system/.fiscal_boot_done" ]; then
     FISCAL_MATCH=$(find /tmp/source_system -maxdepth 1 -iname "*fiscal*.zip" | head -n 1)
     if [ -n "$FISCAL_MATCH" ] && [ -f "$FISCAL_MATCH" ]; then
         echo "📂 [First Boot] Extraindo dicionários de sistema (${FISCAL_MATCH##*/})..."
+        unzip -nq "$FISCAL_MATCH" -d /totvs/protheus/system/ || { rc=$?; [ "$rc" -le 1 ] || exit "$rc"; }
         touch /totvs/protheus/system/.fiscal_boot_done
-        unzip -nq "$FISCAL_MATCH" -d /totvs/protheus/system/
         echo "✅ Arquivos de dicionário fiscal populados com sucesso!"
     else
         echo "⚠️  Aviso: Nenhum pacote com padrão '*fiscal*.zip' localizado em /tmp/source_system/"
@@ -97,13 +102,13 @@ if [ ! -f "/totvs/protheus/system/.menus_boot_done" ]; then
     MENUS_MATCH=$(find /tmp/source_system -maxdepth 1 -iname "*menus*.zip" | head -n 1)
     if [ -n "$MENUS_MATCH" ] && [ -f "$MENUS_MATCH" ]; then
         echo "📂 [First Boot] Extraindo menus corporativos (${MENUS_MATCH##*/})..."
-        touch /totvs/protheus/system/.menus_boot_done
-        unzip -nq "$MENUS_MATCH" -d /totvs/protheus/system/
+        unzip -nq "$MENUS_MATCH" -d /totvs/protheus/system/ || { rc=$?; [ "$rc" -le 1 ] || exit "$rc"; }
         if [ -d "/totvs/protheus/system/menus" ]; then
             echo "📂 Ajustando estrutura de diretórios do menus para a raiz da system..."
             mv /totvs/protheus/system/menus/* /totvs/protheus/system/ 2>/dev/null || true
             rmdir /totvs/protheus/system/menus 2>/dev/null || true
         fi
+        touch /totvs/protheus/system/.menus_boot_done
         echo "✅ Arquivos de menus populados com sucesso!"
     else
         echo "⚠️  Aviso: Nenhum pacote com padrão '*menus*.zip' localizado em /tmp/source_system/"
@@ -115,20 +120,29 @@ fi
 # --- EXTRAÇÃO DINÂMICA DO SYSTEMLOAD (DICIONARIOS, HELP, WEB) ---
 if [ ! -f "/totvs/protheus/systemload/.systemload_boot_done" ]; then
     echo "📂 [First Boot] Extraindo dados de carga in /totvs/protheus/systemload/ (Aguarde)..."
-    touch /totvs/protheus/systemload/.systemload_boot_done
 
     # 1. Localiza e extrai o Dicionário de Carga (dicionarios)
     DIC_MATCH=$(find /tmp/source_systemload -maxdepth 1 -iname "*dicionario*.zip" | head -n 1)
-    [ -n "$DIC_MATCH" ] && [ -f "$DIC_MATCH" ] && echo "📂 Extraindo ${DIC_MATCH##*/}..." && unzip -nq "$DIC_MATCH" -d /totvs/protheus/systemload/
+    if [ -n "$DIC_MATCH" ] && [ -f "$DIC_MATCH" ]; then
+        echo "📂 Extraindo ${DIC_MATCH##*/}..."
+        unzip -nq "$DIC_MATCH" -d /totvs/protheus/systemload/ || { rc=$?; [ "$rc" -le 1 ] || exit "$rc"; }
+    fi
 
     # 2. Localiza e extrai o Help de Sistema (help)
     HELP_MATCH=$(find /tmp/source_systemload -maxdepth 1 -iname "*help*.zip" | head -n 1)
-    [ -n "$HELP_MATCH" ] && [ -f "$HELP_MATCH" ] && echo "📂 Extraindo ${HELP_MATCH##*/}..." && unzip -nq "$HELP_MATCH" -d /totvs/protheus/systemload/
+    if [ -n "$HELP_MATCH" ] && [ -f "$HELP_MATCH" ]; then
+        echo "📂 Extraindo ${HELP_MATCH##*/}..."
+        unzip -nq "$HELP_MATCH" -d /totvs/protheus/systemload/ || { rc=$?; [ "$rc" -le 1 ] || exit "$rc"; }
+    fi
 
     # 3. Localiza e extrai o Help Web (web)
     WEB_MATCH=$(find /tmp/source_systemload -maxdepth 1 -iname "*web*.zip" | head -n 1)
-    [ -n "$WEB_MATCH" ] && [ -f "$WEB_MATCH" ] && echo "📂 Extraindo ${WEB_MATCH##*/}..." && unzip -nq "$WEB_MATCH" -d /totvs/protheus/systemload/
+    if [ -n "$WEB_MATCH" ] && [ -f "$WEB_MATCH" ]; then
+        echo "📂 Extraindo ${WEB_MATCH##*/}..."
+        unzip -nq "$WEB_MATCH" -d /totvs/protheus/systemload/ || { rc=$?; [ "$rc" -le 1 ] || exit "$rc"; }
+    fi
 
+    touch /totvs/protheus/systemload/.systemload_boot_done
     echo "✅ Volume systemload populado com sucesso!"
 else
     echo "⏭️  Volume systemload já inicializado anteriormente. Pulando extração."
