@@ -5,6 +5,13 @@ set -e
 ROLE=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 echo "=== [AppServer] Inicializando Modo Especialista: [${ROLE^^}] ==="
 
+# 0. Eleva o limite de arquivos abertos do processo. O compose garantia isso
+# via ulimits: no serviço; em ambientes sem esse controle (ex.: Kubernetes,
+# que não tem campo de ulimit no pod spec), o soft limit default do host
+# pode ficar bem abaixo do necessário. O hard limit do kernel já comporta
+# folga suficiente na prática — só precisamos pedir para usá-la.
+ulimit -n 65536 2>/dev/null || echo "⚠️  Não foi possível elevar o limite de arquivos abertos (soft/hard limit do ambiente já está no teto)."
+
 # Mapeamento dinâmico das variáveis globais injetadas pelo Docker Compose
 PORT=${APP_PORT_MULTI}
 LICENSE_HOST=${LICENSE_SERVER:-protheus_license}
