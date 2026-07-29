@@ -193,7 +193,7 @@ DBDatabase=${DB_TYPE}
 
 [Drivers]
 Active=TCP
-MultiProtocolPort=$( [ "$ROLE" = "upddistr" ] || [ "$ROLE" = "compile" ] && echo "0" || echo "1" )
+MultiProtocolPort=$( [ "$ROLE" = "upddistr" ] && echo "0" || echo "1" )
 MultiProtocolPortSecure=0
 
 [TCP]
@@ -205,7 +205,7 @@ Server=${LICENSE_HOST}
 Port=${LICENSE_PORT}
 
 [General]
-$( [ "$ROLE" = "upddistr" ] || [ "$ROLE" = "compile" ] && echo ";app_environment=${ENV_NAME}" || echo "app_environment=${ENV_NAME}" )
+$( [ "$ROLE" = "upddistr" ] && echo ";app_environment=${ENV_NAME}" || echo "app_environment=${ENV_NAME}" )
 ShowFullLog=0
 MaxStringSize=500
 MaxQuerySize=31960
@@ -223,7 +223,7 @@ NonStopOnError=1
 EOF
 
 # 🛡️ Injeção de Segurança e Governança Cirúrgica Baseada no Papel
-if [ "$ROLE" = "worker" ] || [ "$ROLE" = "upddistr" ] || [ "$ROLE" = "compile" ]; then
+if [ "$ROLE" = "upddistr" ]; then
     cat <<EOF >> appserver.ini
 
 [WebMonitor]
@@ -338,27 +338,7 @@ if [ "$ROLE" = "core" ]; then
 fi
 
 # ⚡ ORCHESTRATION ENGINE
-if [ "$ROLE" = "worker" ]; then
-    echo "🚀 Preparando ambiente local do Worker..."
-    cd /totvs/protheus/bin/appserver
-    if [ -f "/usr/local/bin/patch_deployer.sh" ]; then
-        echo "🤖 [Worker] Assumindo controle do contêiner em Foreground para execução síncrona..."
-        exec /usr/local/bin/patch_deployer.sh
-    else
-        echo "❌ ERRO CRÍTICO: O script /usr/local/bin/patch_deployer.sh não foi encontrado!"
-        exit 1
-    fi
-elif [ "$ROLE" = "compile" ]; then
-    echo "🚀 Preparando ambiente local do Compilador GitOps..."
-    cd /totvs/protheus/bin/appserver
-    if [ -f "/usr/local/bin/code_compiler.sh" ]; then
-        echo "🤖 [Compiler] Assumindo controle do contêiner em Foreground para compilação..."
-        exec /usr/local/bin/code_compiler.sh
-    else
-        echo "❌ ERRO CRÍTICO: O script /usr/local/bin/code_compiler.sh não foi encontrado!"
-        exit 1
-    fi
-elif [ "$ROLE" = "upddistr" ]; then
+if [ "$ROLE" = "upddistr" ]; then
     echo "📝 Preparando arquivo de parâmetros upddistr_param.json..."
     
     cat <<EOF > /totvs/protheus/systemload/upddistr_param.json

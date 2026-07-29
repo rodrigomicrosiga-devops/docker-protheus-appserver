@@ -17,12 +17,10 @@ graph TD
     B -->|CORE| C[Executa Processamento Master + Cria Semáforo]
     B -->|REST| D[Inicializa HTTPJOB / HTTPREST / Sockets]
     B -->|TELNET| E[Ativa SIGAACD para Coletores de Dados]
-    B -->|WORKER| F[Garante Lock de TDS e Executa patch_deployer.sh]
-    B -->|COMPILE| G[Bloqueia Runtime e Executa code_compiler.sh]
     B -->|UPDDISTR| H[Injeta upddistr_param.json e Roda Dicionário]
     
     %% Validações de Borda
-    C & D & E & F & G & H --> I[Valida Conectividade via nc: DbAccess & License]
+    C & D & E & H --> I[Valida Conectividade via nc: DbAccess & License]
     I --> J[Garante Árvore Mínima de Diretórios nos Volumes]
     J --> K[Renderiza appserver.ini Dinamicamente com Regras de TDS]
     K --> L[Dispara Engine: appsrvlinux -console]
@@ -36,7 +34,7 @@ graph TD
 
 * **Imagem Base**: Ubuntu 22.04 LTS com injeção de dependências de hardware (`dmidecode`) e libs nativas (`libtinfo5, netcat-openbsd`).
 
-* **Regras de Escopo de TDS**: Bloqueio rígido automático de aplicação de patches, desconexão de usuários e monitoramento nos nós de produção (`core`, `rest`, `telnet`), liberando modificações estruturais estritamente nos ambientes controlados de `pipeline` (`worker`, `compile`).
+* **Regras de Escopo de TDS**: Bloqueio rígido automático de aplicação de patches, desconexão de usuários e monitoramento nos nós de produção (`core`, `rest`, `telnet`), liberando essas permissões apenas no papel `upddistr`. Esta imagem nunca aplica patch ou compila fonte — essa responsabilidade é exclusiva da imagem `appserver-dev-worker` (papéis `worker`/`compile`, ver [docker-protheus-appserver-worker](https://github.com/rodrigomicrosiga-devops/docker-protheus-appserver-worker)).
 
 * **Bootstrap Isolado de Cargas**: Gerenciamento nativo e extração unificada via unzip dos arquivos cruciais de dicionário (`fiscal.zip`, `menus.zip`, `dicionarios.zip`) protegidos contra re-extrações destrutivas pós-first-boot.
 

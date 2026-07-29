@@ -82,12 +82,8 @@ RUN mkdir -p /totvs/protheus/bin/appserver \
 COPY --from=builder /tmp/build/appserver /totvs/protheus/bin/appserver/
 
 COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY ./code_compiler.sh /usr/local/bin/code_compiler.sh
-COPY ./patch_deployer.sh /usr/local/bin/patch_deployer.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
-             /usr/local/bin/patch_deployer.sh \
-             /usr/local/bin/code_compiler.sh \
              /totvs/protheus/bin/appserver/appsrvlinux
 
 WORKDIR /totvs/protheus/bin/appserver
