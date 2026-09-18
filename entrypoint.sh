@@ -168,6 +168,18 @@ else
     echo "⚠️  [DevOps] Aviso: Executável printer não localizado em /tmp/printer_shared/"
 fi
 
+# 🌐 PROVISIONAMENTO DOS INSTALADORES DO WEBAGENT (Sidecar)
+# [WEBAGENT] no appserver.ini espera caminho relativo ao diretório de
+# trabalho do AppServer (confirmado na documentação oficial TOTVS) -- por
+# isso copiamos para uma subpasta local `webagent/`, não a raiz.
+mkdir -p /totvs/protheus/bin/appserver/webagent
+if [ -n "$(ls -A /tmp/webagent_shared/ 2>/dev/null)" ]; then
+    echo "🌐 [DevOps] Copiando instaladores do WebAgent para a pasta local..."
+    cp /tmp/webagent_shared/* /totvs/protheus/bin/appserver/webagent/
+else
+    echo "⚠️  [DevOps] Aviso: nenhum instalador do WebAgent localizado em /tmp/webagent_shared/"
+fi
+
 # 3. Renderização dinâmica do appserver.ini com as variáveis validadas
 cd /totvs/protheus/bin/appserver
 echo "📝 Gerando appserver.ini dinâmico para o modo [${ROLE^^}]..."
@@ -269,6 +281,25 @@ cat <<EOF >> appserver.ini
 [WebApp/webapp]
 MPP=
 EOF
+
+# 🌐 [WEBAGENT] -- caminhos relativos aos instaladores entregues pelo sidecar
+# docker-protheus-webagent (copiados acima pra webagent/). Detecta os
+# arquivos realmente presentes em vez de fixar o nome: evita editar este
+# script a cada bump de versão do WebAgent (o nome do arquivo já embute a
+# versão) e já fica pronto pra Windows/macOS quando esses instaladores
+# forem adicionados ao sidecar, sem mudança aqui. Seção inteira omitida se
+# nenhum instalador foi provisionado (sidecar não implantado/volume vazio).
+WEBAGENT_DEB=$(basename "$(ls /totvs/protheus/bin/appserver/webagent/*.deb 2>/dev/null | head -1)" 2>/dev/null || true)
+WEBAGENT_RPM=$(basename "$(ls /totvs/protheus/bin/appserver/webagent/*.rpm 2>/dev/null | head -1)" 2>/dev/null || true)
+if [ -n "$WEBAGENT_DEB" ] || [ -n "$WEBAGENT_RPM" ]; then
+    cat <<EOF >> appserver.ini
+
+[WEBAGENT]
+VERSION=${WEBAGENT_VERSION:-1.1.1}
+$( [ -n "$WEBAGENT_DEB" ] && echo "Linux_x64_deb=webagent/${WEBAGENT_DEB}" )
+$( [ -n "$WEBAGENT_RPM" ] && echo "Linux_x64_rpm=webagent/${WEBAGENT_RPM}" )
+EOF
+fi
 
 # Append dos blocos especialistas dedicados (REST / TELNET / UPDDISTR)
 if [ "$ROLE" = "rest" ]; then
