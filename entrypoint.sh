@@ -284,18 +284,33 @@ EOF
 
 # 🌐 [WEBAGENT] -- caminhos relativos aos instaladores entregues pelo sidecar
 # docker-protheus-webagent (copiados acima pra webagent/). Detecta os
-# arquivos realmente presentes em vez de fixar o nome: evita editar este
-# script a cada bump de versão do WebAgent (o nome do arquivo já embute a
-# versão) e já fica pronto pra Windows/macOS quando esses instaladores
-# forem adicionados ao sidecar, sem mudança aqui. Seção inteira omitida se
-# nenhum instalador foi provisionado (sidecar não implantado/volume vazio).
-WEBAGENT_DEB=$(basename "$(ls /totvs/protheus/bin/appserver/webagent/*.deb 2>/dev/null | head -1)" 2>/dev/null || true)
-WEBAGENT_RPM=$(basename "$(ls /totvs/protheus/bin/appserver/webagent/*.rpm 2>/dev/null | head -1)" 2>/dev/null || true)
-if [ -n "$WEBAGENT_DEB" ] || [ -n "$WEBAGENT_RPM" ]; then
+# arquivos realmente presentes em vez de fixar nome/versão -- evita editar
+# este script a cada bump de versão do WebAgent (o nome do arquivo já
+# embute a versão) e aceita qualquer combinação de SOs que o sidecar
+# entregar, sem mudança aqui. Seção inteira omitida se nada foi
+# provisionado (sidecar não implantado/volume vazio). `find -iname`
+# (não `ls *.ext`) porque os .dmg preservam o nome de download original
+# da TOTVS, que vem em maiúsculas (ex. MAC-UNIVERSAL.DMG).
+WEBAGENT_DIR="/totvs/protheus/bin/appserver/webagent"
+WEBAGENT_DEB=$(find "$WEBAGENT_DIR" -maxdepth 1 -iname '*.deb' 2>/dev/null | head -1 | xargs -r basename)
+WEBAGENT_RPM=$(find "$WEBAGENT_DIR" -maxdepth 1 -iname '*.rpm' 2>/dev/null | head -1 | xargs -r basename)
+# .exe: distingue x64/x86 pelo NOME do arquivo, não pela extensão (os dois
+# usam .exe) -- e `-iname '*.exe'` já exclui o .msi sozinho (é outro fluxo
+# de distribuição, via GPO de Active Directory, sem chave em [WEBAGENT]).
+WEBAGENT_WIN64=$(find "$WEBAGENT_DIR" -maxdepth 1 -iname '*x64*.exe' 2>/dev/null | head -1 | xargs -r basename)
+WEBAGENT_WIN86=$(find "$WEBAGENT_DIR" -maxdepth 1 -iname '*x86*.exe' 2>/dev/null | head -1 | xargs -r basename)
+# .dmg: prefere o build "universal" (única chave documentada,
+# Darwin_universal) se mais de um .dmg estiver presente.
+WEBAGENT_DMG=$(find "$WEBAGENT_DIR" -maxdepth 1 -iname '*universal*.dmg' 2>/dev/null | head -1 | xargs -r basename)
+[ -z "$WEBAGENT_DMG" ] && WEBAGENT_DMG=$(find "$WEBAGENT_DIR" -maxdepth 1 -iname '*.dmg' 2>/dev/null | head -1 | xargs -r basename)
+if [ -n "$WEBAGENT_DEB" ] || [ -n "$WEBAGENT_RPM" ] || [ -n "$WEBAGENT_WIN64" ] || [ -n "$WEBAGENT_WIN86" ] || [ -n "$WEBAGENT_DMG" ]; then
     cat <<EOF >> appserver.ini
 
 [WEBAGENT]
 VERSION=${WEBAGENT_VERSION:-1.1.1}
+$( [ -n "$WEBAGENT_WIN86" ] && echo "Windows_x86=webagent/${WEBAGENT_WIN86}" )
+$( [ -n "$WEBAGENT_WIN64" ] && echo "Windows_x64=webagent/${WEBAGENT_WIN64}" )
+$( [ -n "$WEBAGENT_DMG" ] && echo "Darwin_universal=webagent/${WEBAGENT_DMG}" )
 $( [ -n "$WEBAGENT_DEB" ] && echo "Linux_x64_deb=webagent/${WEBAGENT_DEB}" )
 $( [ -n "$WEBAGENT_RPM" ] && echo "Linux_x64_rpm=webagent/${WEBAGENT_RPM}" )
 EOF
